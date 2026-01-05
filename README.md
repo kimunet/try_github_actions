@@ -10,7 +10,7 @@
 - GitHub Actions の挙動を試すための実験用リポジトリ。
 - CI ワークフロー（lint / test / build / deploy）の作成・検証。
 - Git の操作やワークフローの自動化を学ぶためのサンプル集。
-- Copilot Coding Agent の試用は今日から30日間のみ。
+- Copilot Coding Agent の試用は 2026-01-05 から30日間のみ。
 
 使い方:
 

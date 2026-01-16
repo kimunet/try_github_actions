@@ -12,6 +12,7 @@
 現在の構成
 --
 - `.github/workflows/pr-size-label.yml`: PR の変更行数に応じて `size/XS..XL` のラベルを付与するワークフロー。
+- `.github/agents/japanese-agent.md`: GitHub Copilot Coding Agent の動作をカスタマイズする日本語対応エージェント設定。
 
 設計上の判断と理由
 --

@@ -16,5 +16,6 @@
 
 - ワークフローファイルを `.github/workflows/` に追加して動作確認します。
 - 変更後はローカルでコミットし、リモートへプッシュしてワークフローをトリガーします。
+- GitHub Copilot Coding Agent を使用する場合は、`.github/agents/` 配下のエージェント設定を参照してください。
 
 メンテナー: kimunet

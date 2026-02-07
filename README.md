@@ -10,12 +10,10 @@
 - GitHub Actions の挙動を試すための実験用リポジトリ。
 - CI ワークフロー（lint / test / build / deploy）の作成・検証。
 - Git の操作やワークフローの自動化を学ぶためのサンプル集。
-- Copilot Coding Agent の試用は 2026-01-05 から30日間のみ。
 
 使い方:
 
 - ワークフローファイルを `.github/workflows/` に追加して動作確認します。
 - 変更後はローカルでコミットし、リモートへプッシュしてワークフローをトリガーします。
-- GitHub Copilot Coding Agent を使用する場合は、`.github/agents/` 配下のエージェント設定を参照してください。
 
 メンテナー: kimunet

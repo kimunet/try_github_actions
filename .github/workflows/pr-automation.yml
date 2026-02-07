@@ -17,6 +17,8 @@ jobs:
     permissions:
       pull-requests: write
     steps:
+      - uses: actions/checkout@v4 # 0. まずリポジトリを読み込む
+      
       # ステップ1：PRサイズ（レビューコスト）ラベルの自動更新
       - name: Update review labels
         uses: actions/github-script@v7

@@ -2,7 +2,7 @@ name: pr-automation-all-in-one
 
 on:
   pull_request:
-    types: [opened, edited]
+    types: [opened, synchronize, edited]
 
 jobs:
   automation:

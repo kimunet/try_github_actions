@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  label:
+  pascalgn-labeler:
     runs-on: ubuntu-latest
     # リポジトリに書き込む権限が必要
     permissions:
@@ -14,13 +14,13 @@ jobs:
 
     steps:
       # 1. PRの内容をチェックアウト
-      # - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       # 2. 便利な「既存のAction」を使ってラベルを判定・付与
       # これを使うと、自力でcurlを叩かなくて済みます
       - uses: pascalgn/size-label-action@v0.5.5
-        # env:
-        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           # 行数に応じたラベル設定（お好みで変えられます）
           sizes: |

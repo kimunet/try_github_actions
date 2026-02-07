@@ -3,7 +3,7 @@ name: pr-automation-all-in-one
 on:
   pull_request:
     # opened: 作成時, edited: 本文編集時, synchronize: コミット追加時
-    types: [opened, edited, synchronize]
+    types: [opened, edited, synchronize, ready_for_review]
 
 # 並行実行の制御：同じPRで新しい動きがあったら古い実行をキャンセルして節約
 concurrency:

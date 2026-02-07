@@ -1,0 +1,56 @@
+name: review-cost-labeler
+
+on:
+  pull_request:
+    types: [opened, edited] # 作成時と編集時
+
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            // 1. 現在のreview:ラベルを取得してリスト化
+            const currentLabels = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const currentReviewLabels = currentLabels.data
+              .map(l => l.name)
+              .filter(name => name.startsWith('review:'))
+              .sort(); // 比較しやすくするためにソート
+
+            // 2. 理想のreview:ラベルをリスト化 (PRの本文からチェックがついているものを抽出（Setで重複排除）)
+            const body = context.payload.pull_request.body || "";
+            const pattern = /- \[x\]\s*(small|medium|large)/gi;
+            const matches = [...body.matchAll(pattern)];
+            const labelsToBe = Array.from(new Set(matches.map(m => `review:${m[1].toLowerCase()}`)));
+
+            // 3. 差分計算（名前のリスト同士で比較します）
+            const labelsToRemove = currentReviewLabels.filter(name => !labelsToBe.includes(name));
+            const labelsToAdd = labelsToBe.filter(name => !currentReviewLabels.includes(name));
+            
+            // 4. 差分適用
+            // 4.1. 削除（削除は1つずつ命令を送る必要があります）
+            for (const name of labelsToRemove) {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: name // ここで取り出したラベル名を指定
+              });
+            }
+
+            // 4.2. 追加
+            if (labelsToAdd.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: labelsToAdd
+              });
+            }

@@ -1,0 +1,54 @@
+name: PR Size Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pascalgn-labeler:
+    runs-on: ubuntu-latest
+    # リポジトリに書き込む権限が必要
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      # 1. PRの内容をチェックアウト
+      - uses: actions/checkout@v4
+
+      # 2. 便利な「既存のAction」を使ってラベルを判定・付与
+      # これを使うと、自力でcurlを叩かなくて済みます
+      - uses: pascalgn/size-label-action@v0.5.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # 行数に応じたラベル設定（お好みで変えられます）
+          sizes: |
+            {"0": "pXS", "20": "pS", "100": "pM", "500": "pL", "1000": "pXL"}
+
+  codelytv-labeler:
+    permissions:
+      pull-requests: write
+      contents: read
+      # issues: write # 最低限の権限にしておく
+    runs-on: ubuntu-latest
+    name: Label the PR size
+    steps:
+      - uses: codelytv/pr-size-labeler@v1
+        with:
+          xs_label: 'size/xs'
+          xs_max_size: '10'
+          s_label: 'size/s'
+          s_max_size: '100'
+          m_label: 'size/m'
+          m_max_size: '500'
+          l_label: 'size/l'
+          l_max_size: '1000'
+          xl_label: 'size/xl'
+          fail_if_xl: 'false'
+          message_if_xl: >
+            This PR exceeds the recommended size of 1000 lines.
+            Please make sure you are NOT addressing multiple issues with one PR.
+            Note this PR might be rejected due to its size.
+          github_api_url: 'https://api.github.com'
+          files_to_ignore: "*.md"

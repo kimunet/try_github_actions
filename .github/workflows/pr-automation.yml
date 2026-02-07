@@ -1,0 +1,54 @@
+name: pr-automation-all-in-one
+
+on:
+  pull_request:
+    # opened: 作成時, edited: 本文編集時, synchronize: コミット追加時
+    types: [opened, edited, synchronize]
+
+# 並行実行の制御：同じPRで新しい動きがあったら古い実行をキャンセルして節約
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  automation:
+    runs-on: ubuntu-latest
+    # ジョブ単位で必要な書き込み権限を付与
+    permissions:
+      pull-requests: write
+    steps:
+      # ステップ1：PRサイズ（レビューコスト）ラベルの自動更新
+      - name: Update review labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 現在のラベル一覧を取得
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const currentReviewLabels = labels.map(l => l.name).filter(n => n.startsWith('review:'));
+
+            // PR本文のチェックボックスから [x] small/medium/large を抽出
+            const body = context.payload.pull_request.body || "";
+            const matches = [...body.matchAll(/- \[x\]\s*(small|medium|large)/gi)];
+            const labelsToBe = Array.from(new Set(matches.map(m => `review:${m[1].toLowerCase()}`)));
+
+            // 不要になったラベルの削除と、新しいラベルの追加
+            const toRemove = currentReviewLabels.filter(n => !labelsToBe.includes(n));
+            const toAdd = labelsToBe.filter(n => !currentReviewLabels.includes(n));
+
+            for (const name of toRemove) {
+              await github.rest.issues.removeLabel({ ...context.repo, issue_number: context.issue.number, name });
+            }
+            if (toAdd.length > 0) {
+              await github.rest.issues.addLabels({ ...context.repo, issue_number: context.issue.number, labels: toAdd });
+            }
+
+      # ステップ2：作成者をアサイン（PR作成時のみ実行）
+      - name: Assign author
+        if: github.event.action == 'opened'
+        run: gh pr edit ${{ github.event.pull_request.number }} --add-assignee ${{ github.actor }}
+        env:
+          GH_TOKEN: ${{ github.token }} # GitHub公式のCLIツールを使用

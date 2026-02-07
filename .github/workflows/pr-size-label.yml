@@ -25,8 +25,6 @@ jobs:
           # 行数に応じたラベル設定（お好みで変えられます）
           sizes: |
             {"0": "pXS", "20": "pS", "100": "pM", "500": "pL", "1000": "pXL"}
-          ignored: |
-            *.md
 
   codelytv-labeler:
     permissions:

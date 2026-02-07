@@ -50,7 +50,7 @@ jobs:
 
       # ステップ2：作成者をアサイン（PR作成時のみ実行）
       - name: Assign author
-        if: github.event.action == 'opened'
+        if: github.event.action == 'opened' || github.event.action == 'ready_for_review'
         run: gh pr edit ${{ github.event.pull_request.number }} --add-assignee ${{ github.actor }}
         env:
           GH_TOKEN: ${{ github.token }} # GitHub公式のCLIツールを使用

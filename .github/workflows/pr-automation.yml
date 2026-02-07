@@ -3,7 +3,7 @@ name: pr-automation-all-in-one
 on:
   pull_request:
     # opened: 作成時, edited: 本文編集時, synchronize: コミット追加時
-    types: [opened, edited, synchronize]
+    types: [opened, edited, synchronize, ready_for_review]
 
 # 並行実行の制御：同じPRで新しい動きがあったら古い実行をキャンセルして節約
 concurrency:
@@ -17,6 +17,8 @@ jobs:
     permissions:
       pull-requests: write
     steps:
+      - uses: actions/checkout@v4 # 0. まずリポジトリを読み込む
+      
       # ステップ1：PRサイズ（レビューコスト）ラベルの自動更新
       - name: Update review labels
         uses: actions/github-script@v7
@@ -48,7 +50,7 @@ jobs:
 
       # ステップ2：作成者をアサイン（PR作成時のみ実行）
       - name: Assign author
-        if: github.event.action == 'opened'
+        if: github.event.action == 'opened' || github.event.action == 'ready_for_review'
         run: gh pr edit ${{ github.event.pull_request.number }} --add-assignee ${{ github.actor }}
         env:
           GH_TOKEN: ${{ github.token }} # GitHub公式のCLIツールを使用

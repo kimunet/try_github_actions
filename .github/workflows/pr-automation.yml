@@ -1,0 +1,48 @@
+name: pr-automation-all-in-one
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  automation:
+    runs-on: ubuntu-latest
+    # ラベル操作とアサインの両方に必要な権限を設定します
+    permissions:
+      pull-requests: write
+    steps:
+      # 1. レビューコスト & サイズラベルの更新
+      - name: Update Labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 現在のラベルを取得
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const currentReviewLabels = labels.map(l => l.name).filter(n => n.startsWith('review:'));
+
+            // PR本文から [x] small/medium/large を抽出
+            const body = context.payload.pull_request.body || "";
+            const matches = [...body.matchAll(/- \[x\]\s*(small|medium|large)/gi)];
+            const labelsToBe = Array.from(new Set(matches.map(m => `review:${m[1].toLowerCase()}`)));
+
+            // 差分だけを適用
+            const toRemove = currentReviewLabels.filter(n => !labelsToBe.includes(n));
+            const toAdd = labelsToBe.filter(n => !currentReviewLabels.includes(n));
+
+            for (const name of toRemove) {
+              await github.rest.issues.removeLabel({ ...context.repo, issue_number: context.issue.number, name });
+            }
+            if (toAdd.length > 0) {
+              await github.rest.issues.addLabels({ ...context.repo, issue_number: context.issue.number, labels: toAdd });
+            }
+
+      # 2. 作成者をアサイン（作成時のみ実行）
+      - name: Assign Author
+        if: github.event.action == 'opened' # 条件分岐で編集時はスキップします
+        run: gh pr edit ${{ github.event.pull_request.number }} --add-assignee ${{ github.actor }}
+        env:
+          GH_TOKEN: ${{ github.token }} # GitHub公式のCLIツールを使用

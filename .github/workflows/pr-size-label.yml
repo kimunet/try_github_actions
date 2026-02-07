@@ -5,80 +5,23 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  label-size:
+  label:
     runs-on: ubuntu-latest
+    # リポジトリに書き込む権限が必要
     permissions:
+      pull-requests: write
       contents: read
-      issues: write
+
     steps:
-      - name: Checkout PR head
-        uses: actions/checkout@v4
+      # 1. PRの内容をチェックアウト
+      - uses: actions/checkout@v4
+
+      # 2. 便利な「既存のAction」を使ってラベルを判定・付与
+      # これを使うと、自力でcurlを叩かなくて済みます
+      - uses: pascalgn/size-label-action@v0.5.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-
-      - name: Record start time
-        run: |
-          echo "START_TIME=$(date +%s)" >> $GITHUB_ENV
-
-      - name: Fetch base branch
-        run: |
-          BASE_REF=${{ github.event.pull_request.base.ref }}
-          git fetch origin ${BASE_REF}:refs/remotes/origin/${BASE_REF}
-
-      - name: Calculate changed lines
-        id: calc
-        run: |
-          BASE_REF=${{ github.event.pull_request.base.ref }}
-          HEAD_SHA=${{ github.event.pull_request.head.sha }}
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          CHANGED_LINES=$(git diff --numstat origin/${BASE_REF}...${HEAD_SHA} | awk '{added+=$1; deleted+=$2} END {print added+deleted+0}')
-          if [ -z "$CHANGED_LINES" ]; then CHANGED_LINES=0; fi
-          echo "changed_lines=$CHANGED_LINES" >> $GITHUB_OUTPUT
-          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-
-      - name: Determine label
-        id: label
-        run: |
-          LINES=${{ steps.calc.outputs.changed_lines }}
-          if [ "$LINES" -lt 10 ]; then LABEL="size/XS"; elif [ "$LINES" -lt 50 ]; then LABEL="size/S"; elif [ "$LINES" -lt 200 ]; then LABEL="size/M"; elif [ "$LINES" -lt 500 ]; then LABEL="size/L"; else LABEL="size/XL"; fi
-          echo "label=$LABEL" >> $GITHUB_OUTPUT
-
-      - name: Remove old size labels (best-effort)
-        run: |
-          PR_NUMBER=${{ steps.calc.outputs.pr_number }}
-          OWNER_REPO=${{ github.repository }}
-          TOKEN=${{ secrets.GITHUB_TOKEN }}
-          for L in "size/XS" "size/S" "size/M" "size/L" "size/XL"; do
-            curl -s -X DELETE -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${OWNER_REPO}/issues/${PR_NUMBER}/labels/${L}" || true
-          done
-
-      - name: Add size label
-        run: |
-          PR_NUMBER=${{ steps.calc.outputs.pr_number }}
-          OWNER_REPO=${{ github.repository }}
-          TOKEN=${{ secrets.GITHUB_TOKEN }}
-          LABEL=${{ steps.label.outputs.label }}
-          curl -s -X POST -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${OWNER_REPO}/issues/${PR_NUMBER}/labels" -d "{\"labels\":[\"${LABEL}\"]}"
-
-      - name: Record end time and save metrics
-        run: |
-          END_TIME=$(date +%s)
-          START_TIME=${START_TIME:-0}
-          DURATION=$((END_TIME - START_TIME))
-          CHANGED_LINES=${{ steps.calc.outputs.changed_lines }}
-          LABEL=${{ steps.label.outputs.label }}
-          cat > pr-size-metrics.json <<EOF
-{
-  "pr_number": ${ { steps.calc.outputs.pr_number } },
-  "changed_lines": ${CHANGED_LINES},
-  "label": "${LABEL}",
-  "duration_seconds": ${DURATION}
-}
-EOF
-
-      - name: Upload metrics artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr-size-metrics
-          path: pr-size-metrics.json
+          # 行数に応じたラベル設定（お好みで変えられます）
+          sizes: |
+            {"0": "XS", "20": "S", "100": "M", "500": "L", "1000": "XL"}

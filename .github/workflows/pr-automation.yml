@@ -21,6 +21,7 @@ jobs:
       
       # ステップ1：PRサイズ（レビューコスト）ラベルの自動更新
       - name: Update review labels
+        id: label_step # 後で参照するために ID を付ける
         uses: actions/github-script@v7
         with:
           script: |
@@ -47,10 +48,28 @@ jobs:
             if (toAdd.length > 0) {
               await github.rest.issues.addLabels({ ...context.repo, issue_number: context.issue.number, labels: toAdd });
             }
-
+            
+            // 最後に、決まったラベルを「出力」として保存する
+            core.setOutput('applied_labels', labelsToBe.join(', ') || 'none');
+            
       # ステップ2：作成者をアサイン（PR作成時のみ実行）
       - name: Assign author
         if: github.event.action == 'opened' || github.event.action == 'ready_for_review'
         run: gh pr edit ${{ github.event.pull_request.number }} --add-assignee ${{ github.actor }}
         env:
           GH_TOKEN: ${{ github.token }} # GitHub公式のCLIツールを使用
+
+      # ステップ3：Slack通知
+      - name: Slack Notification
+        if: always()
+        run: |
+          # 前のステップの出力を変数に入れる
+          LABELS="${{ steps.label_step.outputs.applied_labels }}"
+          LOG_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{
+            \"text\": \"*PR Automation Result* \nLabels: ${LABELS} \nLog: <${LOG_URL}|View Details>\"
+          }" $SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

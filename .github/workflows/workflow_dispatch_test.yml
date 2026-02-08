@@ -1,0 +1,31 @@
+name: workflow_dispatch_test
+
+on:
+  push:
+    tags:
+      - 'v*'  # テスト用に v1.0 などのタグで動くように設定
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'デプロイしたいブランチ名'
+        required: true
+        default: 'main'
+
+# 並行実行の制御：同じワークフローなら古い進行中の方をキャンセル
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  echo-event_name:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # これがないと git push でエラーになります
+    steps:
+      - uses: actions/checkout@v4 # 0. まずリポジトリを読み込む
+        with:
+          fetch-depth: 0 # 全履歴を取得しないとタグが打てない場合があります
+      # ステップ1：PRサイズ（レビューコスト）ラベルの自動更新
+      - name: echo event_name
+        run: |
+          echo "event_name: ${{ github.event_name }}'

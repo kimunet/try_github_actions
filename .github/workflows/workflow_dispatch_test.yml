@@ -28,4 +28,4 @@ jobs:
       # ステップ1：PRサイズ（レビューコスト）ラベルの自動更新
       - name: echo event_name
         run: |
-          echo "event_name: ${{ github.event_name }}'
+          echo "event_name: ${{ github.event_name }}"
